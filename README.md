@@ -16,7 +16,7 @@ QueryCraft is a Streamlit application designed to generate SQL queries from natu
 1. Clone the repository:
    ```bash
    git clone https://github.com/Soumyajit-7/Quer.somE-Intelligent-SQL-Exploration-Automation.git
-   cd Quer.somE-Intelligent-SQL-Exploration-Automation\
+   cd Quer.somE-Intelligent-SQL-Exploration-Automation
 
 2. Install Requirements:
    ```bash
