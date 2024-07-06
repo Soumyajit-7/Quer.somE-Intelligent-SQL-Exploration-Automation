@@ -4,6 +4,8 @@ import sqlite3
 import pandas as pd
 from dotenv import load_dotenv
 import google.generativeai as genai
+import uuid
+from image_to_sql import ImageToSQL  # Import the new class
 
 # Load environment variables
 load_dotenv()
@@ -11,9 +13,16 @@ load_dotenv()
 # Configure Genai Key
 genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
 
-# Initialize query history
+# Initialize unique session ID
+if 'session_id' not in st.session_state:
+    st.session_state.session_id = str(uuid.uuid4())
+
+# Initialize query history for this session
 if 'query_history' not in st.session_state:
-    st.session_state.query_history = []
+    st.session_state.query_history = {}
+
+if st.session_state.session_id not in st.session_state.query_history:
+    st.session_state.query_history[st.session_state.session_id] = []
 
 # Function to load Google Gemini Model and provide queries as response
 def get_gemini_response(question, prompt):
@@ -77,7 +86,7 @@ def generate_prompt(table_details):
         detailed_table_info.append(table_info.rstrip(", "))
 
     history = "\n".join(
-        [f"Q: {item['question']}\nSQL: {item['sql']}\nSuccess: {item['success']}\n" + (f"Error: {item['error']}" if 'error' in item else "") for item in st.session_state.query_history]
+        [f"Q: {item['question']}\nSQL: {item['sql']}\nSuccess: {item['success']}\n" + (f"Error: {item['error']}" if 'error' in item else "") for item in st.session_state.query_history.get(st.session_state.session_id, [])]
     )
 
     prompt = [
@@ -136,7 +145,7 @@ st.set_page_config(page_title="Quersome", page_icon="Designer.png", layout="wide
 st.header("Quer.somE: Intelligent SQL Exploration & Automation")
 
 # File uploader for SQL database
-uploaded_file = st.file_uploader("Choose a SQL database file", type="db", key="file", help="Upload a SQL database file to get started", accept_multiple_files=False)
+uploaded_file = st.file_uploader("Choose an SQL database file", type="db", key="file", help="Upload an SQL database file to get started", accept_multiple_files=False)
 
 if uploaded_file is not None:
     # Ensure the 'uploaded_files' directory exists
@@ -152,12 +161,15 @@ if uploaded_file is not None:
 
     # Get and display table details
     table_details = get_table_details(db_path)
-    st.write("Tables in the database:")
+    
+    # Display database and table structures in tabular form
+    table_structures = []
     for table in table_details:
-        st.write(f"Table: {table['table_name']}, Rows: {table['row_count']}")
-        st.write("Columns:")
         for column in table['columns']:
-            st.write(f" - {column['name']} ({column['type']})")
+            table_structures.append([table['table_name'], table['row_count'], column['name'], column['type']])
+    
+    df_structure = pd.DataFrame(table_structures, columns=["Table Name", "Row Count", "Column Name", "Column Type"])
+    st.table(df_structure)
 
     # Define your dynamic prompt
     prompt = generate_prompt(table_details)
@@ -178,7 +190,7 @@ if uploaded_file is not None:
         rows, success, error_message = execute_sql_query(sql_query, db_path)
         
         # Update query history
-        st.session_state.query_history.append({
+        st.session_state.query_history[st.session_state.session_id].append({
             "question": question,
             "sql": sql_query,
             "success": success,
@@ -210,5 +222,36 @@ if uploaded_file is not None:
             file_name=uploaded_file.name,
             mime="application/octet-stream"
         )
+
+    # Image to SQL functionality
+    st.subheader("Add Table from Image")
+    image_file = st.file_uploader("Upload an image of a table", type=["jpg", "jpeg", "png"], key="image")
+
+    if image_file is not None:
+        img_path = os.path.join("uploaded_files", image_file.name)
+
+        with open(img_path, "wb") as f:
+            f.write(image_file.getbuffer())
+
+        image_to_sql = ImageToSQL()
+        sql_query_from_image = image_to_sql.generate_sql_from_image(img_path, prompt)
+        
+        st.write(f"Generated SQL query from image: {sql_query_from_image}")
+
+        rows, success, error_message = execute_sql_query(sql_query_from_image, db_path)
+        
+        # Update query history
+        st.session_state.query_history[st.session_state.session_id].append({
+            "question": "Generated from image",
+            "sql": sql_query_from_image,
+            "success": success,
+            "error": error_message
+        })
+
+        st.subheader("The Response is")
+        if success:
+            st.write("Table created and data inserted successfully.")
+        else:
+            st.write(f"An error occurred: {error_message}")
 else:
-    st.write("Please upload a SQL database (.db) file to get started.")
+    st.write("Please upload an SQL database (.db) file to get started.")
