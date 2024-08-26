@@ -28,5 +28,14 @@ QueryCraft is a Streamlit application designed to generate SQL queries from natu
    
 4. Run the Streamlit app:
    ```bash
-   streamlit run main.py
+   streamlit run main.py --server.enableXsrfProtection false
 
+
+## Code Explanation
+ - get_gemini_response(question, prompt): Uses Google Gemini's AI to generate an SQL query from a natural language question and a detailed prompt.
+
+ - execute_sql_query(sql, db): Executes a SQL query on the specified SQLite database and returns the results, along with success status and any error messages.
+
+ - get_table_details(db): Retrieves metadata about tables in the SQLite database, including table names, column details, and row counts.
+
+ - generate_prompt(table_details): Creates a prompt for the Google Gemini model based on the database structure and query history to generate accurate SQL queries.
