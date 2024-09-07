@@ -1,6 +1,6 @@
 # Quer.somE: Intelligent SQL Exploration & Automation
 
-QueryCraft is a Streamlit application designed to generate SQL queries from natural language questions, execute those queries on an uploaded SQLite database, and display the results in an intuitive interface. Powered by Google Gemini's generative AI, QueryCraft simplifies database querying and management.
+Quer.somE is a Streamlit application designed to generate SQL queries from natural language questions, execute those queries on an uploaded SQLite database, and display the results in an intuitive interface. Powered by Google Gemini's generative AI, QueryCraft simplifies database querying and management.
 
 ## Features
 
